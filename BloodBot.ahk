@@ -9,11 +9,13 @@ global Stats_Runs := 0
 ; Configuration file handling
 ; ===============================
 
-global CorrectConfigVersion := 5
+global CorrectConfigVersion := 7
 global ConfigPath := A_WorkingDir "\BloodBot.ini"
 global MyHP := 0
 global lowestDesiredHP := 0
 global ExtraRestSeconds := 0
+global TekPodHoldDownTimeout := 0
+global TekPodMoveYDist := 0
 
 ;defaults for 1920*1080 with ini
 global TekPodIconCoordsX := 1712
@@ -21,7 +23,7 @@ global TekPodIconCoordsY := 1019
 global TekPodIconColour := 0xA48A27
 global FridgeIconCoordsX := 765
 global FridgeIconCoordsY := 557
-global FridgeIconColour := 0xBAF3FF
+global FridgeIconColour := 0xC1F5FF
 global EngramSlotCoordsX := 0
 global EngramSlotCoordsY := 0
 global SearchBoxCoordsX := 0
@@ -138,16 +140,23 @@ CreateConfig() {
 	StringSplit, TekPodIconCoordsArray, TekPodIconCoords, "|"
 	_TekPodIconCoordsX := TekPodIconCoordsArray1
 	_TekPodIconCoordsY := TekPodIconCoordsArray2
+	click
 	PixelGetColor, _TekPodIconColour, %_TekPodIconCoordsX%, %_TekPodIconCoordsY%, Fast RGB
-	
+	TekPodIconColour = %_TekPodIconColour%
 	SplashTextOn, 500, 100, Setup: Positioning, Sweet! Now with that info we can continue to setting up the fridge details...`nPlease exit the tek pod and open the fridge inventory. Once you've done that, hit "R" again to continue...
 	FridgeCoords := getFridgePositioning()
 	StringSplit, FridgeCoordsArray, FridgeCoords, "|"
 	_FridgeIconCoordsX := FridgeCoordsArray1
 	_FridgeIconCoordsY := FridgeCoordsArray2
 	SplashTextOff
-	sleep 500
-	PixelGetColor, _FridgeIconColour, %_FridgeIconCoordsX%, %_FridgeIconCoordsY%, Fast RGB
+	ToolTip, Just a sec..., 0, 0
+	sleep 100
+	click
+	sleep 1000
+	PixelGetColor, _FridgeIconColor, %_FridgeIconCoordsX%, %_FridgeIconCoordsY%, Fast RGB
+	FridgeIconColour = %_FridgeIconColor%
+	ToolTip, ,0, 0
+
 	sleep 100
 
 	SearchBoxCoords := getSearchPositioning()
@@ -165,18 +174,16 @@ CreateConfig() {
 	_TransferAllButtonCoordsX := TransferAllButtonArray1
 	_TransferAllButtonCoordsY := TransferAllButtonArray2
 
-	EngramSlotCoordsX := _EngramSlotCoordsX
-	EngramSlotCoordsY := _EngramSlotCoordsY
-	SearchBoxCoordsX := _SearchBoxCoordsX
-	SearchBoxCoordsY := _SearchBoxCoordsY
-	TransferAllButtonCoordsX := _TransferAllButtonCoordsX
-	TransferAllButtonCoordsY := _TransferAllButtonCoordsY
-	TekPodIconCoordsX := _TekPodIconCoordsX
-	TekPodIconCoordsY := _TekPodIconCoordsY
-	TekPodIconColour := _TekPodIconColour
-	FridgeIconCoordsX := _FridgeIconCoordsX
-	FridgeIconCoordsY := _FridgeIconCoordsY
-	FridgeIconColour := _FridgeIconColour
+	EngramSlotCoordsX = %_EngramSlotCoordsX%
+	EngramSlotCoordsY = %_EngramSlotCoordsY%
+	SearchBoxCoordsX = %_SearchBoxCoordsX%
+	SearchBoxCoordsY = %_SearchBoxCoordsY%
+	TransferAllButtonCoordsX = %_TransferAllButtonCoordsX%
+	TransferAllButtonCoordsY = %_TransferAllButtonCoordsY%
+	TekPodIconCoordsX = %_TekPodIconCoordsX%
+	TekPodIconCoordsY = %_TekPodIconCoordsY%
+	FridgeIconCoordsX = %_FridgeIconCoordsX%
+	FridgeIconCoordsY = %_FridgeIconCoordsY%
 
 	IniWrite, %EngramSlotCoordsX%, %ConfigPath%, settings, EngramSlotCoordsX
 	IniWrite, %EngramSlotCoordsY%, %ConfigPath%, settings, EngramSlotCoordsY
@@ -193,12 +200,16 @@ CreateConfig() {
 
 	; predefined settings
 	IniWrite, 50, %ConfigPath%, settings, lowestDesiredHP
+	IniWrite, 500, %ConfigPath%, settings, TekPodHoldDownTimeout
+	IniWrite, 500, %ConfigPath%, settings, TekPodMoveYDist
 	IniWrite, 10, %ConfigPath%, settings, ExtraRestSeconds
 	IniWrite, %CorrectConfigVersion%, %ConfigPath%, config, configVersion
 	MyHP := _MyHP
+	TekPodHoldDownTimeout := 500
+	TekPodMoveYDist := 20
 	lowestDesiredHP := 50
 	ExtraRestSeconds := 10
-	LoadConfig()
+	return LoadConfig()
 }
 
 LoadConfig() {
@@ -213,13 +224,16 @@ LoadConfig() {
 	IniRead, _TekPodIconColour, %ConfigPath%, settings, TekPodIconColour, 0xA48A27
 	IniRead, _FridgeIconCoordsX, %ConfigPath%, settings, FridgeIconCoordsX, 765
 	IniRead, _FridgeIconCoordsY, %ConfigPath%, settings, FridgeIconCoordsY, 557
-	IniRead, _FridgeIconColour, %ConfigPath%, settings, FridgeIconColour, 0xBAF3FF
-
+	IniRead, _FridgeIconColor, %ConfigPath%, settings, FridgeIconColour, 0xC1F5FF
 	IniRead, _lowestDesiredHP, %ConfigPath%, settings, lowestDesiredHP, 50
+	IniRead, _TekPodHoldDownTimeout, %ConfigPath%, settings, TekPodHoldDownTimeout, 10
+	IniRead, _TekPodMoveYDist, %ConfigPath%, settings, TekPodMoveYDist, 20
 	IniRead, _ExtraRestSeconds, %ConfigPath%, settings, ExtraRestSeconds, 10
 	IniRead, _MyHP, %ConfigPath%, settings, MyHP, 0
 	MyHP := _MyHP
 	lowestDesiredHP := _lowestDesiredHP
+	TekPodHoldDownTimeout := _TekPodHoldDownTimeout
+	TekPodMoveYDist := _TekPodMoveYDist
 	ExtraRestSeconds := _ExtraRestSeconds
 
 	EngramSlotCoordsX := _EngramSlotCoordsX
@@ -233,44 +247,56 @@ LoadConfig() {
 	TekPodIconColour := _TekPodIconColour
 	FridgeIconCoordsX := _FridgeIconCoordsX
 	FridgeIconCoordsY := _FridgeIconCoordsY
-	FridgeIconColour := _FridgeIconColour
+	FridgeIconColour := _FridgeIconColor
+	return true
 }
 
 leavePodOpenInventory() {
+	ToolTip, Leaving pod, 0, 0
 	Sleep 500
 	send F
 	Sleep 500
-	t:= waitColour(FridgeIconColour, FridgeIconCoordsX, FridgeIconCoordsY, 50)
+	t:= waitColour(FridgeIconColour, FridgeIconCoordsX, FridgeIconCoordsY, 100)
 	ToolTip, Inventory Open, 0, 0
 	if (t = 0)
-		leavePodOpenInventory()
+		return leavePodOpenInventory()
+	return true
 }
 
 useTekPod() {
+	ToolTip, Using tek pod, 0, 0
 	ShiftMouse(0, 50, 100, 10)
 	Sleep 100
 	Send {e Down}
-	sleep 200
-	MouseGetPos, posX, posY
+	sleep %TekPodHoldDownTimeout%
+	;MouseGetPos, posX, posY
 	MouseMove, 1200, 520, 2
-	sleep 200
+	;ShiftMouse(TekPodMoveYDist, -10, 10, 1)
+	sleep %TekPodHoldDownTimeout%
 	Send {e Up}
-	t:=waitColour(TekPodIconColour, TekPodIconCoordsX, TekPodIconCoordsY, 50)
+	ToolTip, Checking if we're in tek pod..., 0, 0
+	t:=waitColour(TekPodIconColour, TekPodIconCoordsX, TekPodIconCoordsY, 100)
 	ToolTip, Entered TekPod, 0, 0
+	return true
 }
 
 waitColour(input, x, y, maxAttempts) {
 	colour:=0
 	coldif:=0
 	waitcolour:
-	loop %maxAttempts% {
-		PixelGetColor, colour, x, y, Fast RGB
-		coldif := similarColour(colour, input)
-		if (coldif = 1) {
-			 break waitcolour
+		loop %maxAttempts% {
+			PixelGetColor, colour, x, y, Fast RGB
+			coldif := similarColour(colour, input)
+			ToolTip, Checking %colour% and %input% for a near match..., 0, 0
+			if (coldif = 1) {
+				return coldif
+				;break waitcolour
+			}
+			sleep 100
 		}
-		sleep 200
-	}
+		ToolTip, Wait Colour max of %maxAttempts% exceeded., 0, 0
+		sleep, 5000
+		return coldif
 	return coldif
 
 }
@@ -288,20 +314,20 @@ spamE(times) {
 			sleep 100
 		}
 	}
+	return true
 }
 
-similarColour(colour, colourtwo, diff = 10) {
-	cRed    := "0x" SubStr(colour, 3, 2) "0000"
-	cGreen  := "0x00" SubStr(colour, 5, 2) "00"
-	cBlue   := "0x0000" SubStr(colour, 7, 2)
-    ctRed   := "0x" SubStr(colourtwo, 3, 2) "0000"
-	ctGreen := "0x00" SubStr(colourtwo, 5, 2) "00"
-	ctBlue  := "0x0000" SubStr(colourtwo, 7, 2)
-    dRed   := Abs((cRed+0) - (ctRed+0))
-    dGreen := Abs((cGreen+0) - (ctGreen+0))
-    dBlue  := Abs((cBlue+0) - (ctBlue+0))
-    DiffAmount := dRed + dGreen + dBlue
-    return (DiffAmount < diff)
+similarColour(inputColour, comparisonColour, diff = 20) {
+	tr := format("{:d}","0x" . substr(comparisonColour,3,2))
+	tg := format("{:d}","0x" . substr(comparisonColour,5,2))
+	tb := format("{:d}","0x" . substr(comparisonColour,7,2))
+
+	pr := format("{:d}","0x" . substr(inputColour,3,2))
+	pg := format("{:d}","0x" . substr(inputColour,5,2))
+	pb := format("{:d}","0x" . substr(inputColour,7,2))
+
+	distance := sqrt((tr-pr)**2+(tg-pg)**2+(pb-tb)**2)
+	return (distance < diff)
 }
 
 ShiftMouse(x, y, times := 1, rate := 1) {
@@ -315,6 +341,7 @@ ShiftMouse(x, y, times := 1, rate := 1) {
             }
         }
     }
+    return True
 }
 
 SecondsSleep(seconds) {
@@ -325,6 +352,7 @@ SecondsSleep(seconds) {
 		x := x + 1
 		ToolTip, Sleeping (%x% of %seconds% seconds) [Runs: %Stats_Runs%], 0, 0
 	}
+	return True
 }
 
 Delay( D=0.001 ) {
@@ -456,10 +484,12 @@ DrawCircle(x, y, colour) {
 	x:=x-20
 	y:=y-20
 	Gui, Show, w500 h500 x%x% y%y%
+	return true
 }
 
 RemoveCircle() {
     Gui, Hide
+    return true
 }
 
 ; ===============================
