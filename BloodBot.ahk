@@ -1,15 +1,26 @@
+#SingleInstance Force
 ; Created by LKD70, October 2020
 ; This project and all of its resources are published under the MIT license.
 ; A copy of this license can be obtained at: https://github.com/lkd70/BloodBot/blob/main/LICENSE
 
 
 global Stats_Runs := 0
+global previousRuns := 0
+
+for n, param in A_Args
+{
+	if (n = 1) {
+        previousRuns = %param%
+	}
+}
+
+Stats_Runs = %previousRuns%
 
 ; ===============================
 ; Configuration file handling
 ; ===============================
 
-global CorrectConfigVersion := 7
+global CorrectConfigVersion := 8
 global ConfigPath := A_WorkingDir "\BloodBot.ini"
 global MyHP := 0
 global lowestDesiredHP := 0
@@ -30,6 +41,8 @@ global SearchBoxCoordsX := 0
 global SearchBoxCoordsY := 0
 global TransferAllButtonCoordsX := 0
 global TransferAllButtonCoordsY := 0
+global restartAfterRuns := 10
+
 
 if (FileExist(ConfigPath) != "") {
 	; If the file exists, load it.
@@ -73,7 +86,14 @@ secondsForFull := ((MyHP / 10) * 1.3) + ExtraRestSeconds
 ; ===============================
 ; Start workflow
 ; ===============================
-MsgBox, F2: Start`rF4: Pause/Play`r`rBlood packs per run: %usesOfExtractor%`nStand OVER (not in) your tek pod and hit F2 to begin.
+if (previousRuns > 0) {
+    ToolTip, Resuming..., 0, 0
+	sleep 5000
+	BloodToggle = true
+	goto Blood
+} else {
+	MsgBox, F2: Start`rF4: Pause/Play`r`rBlood packs per run: %usesOfExtractor%`nStand OVER (not in) your tek pod and hit F2 to begin.
+}
 SetTimer Blood, On
 CoordMode, Mouse, Client
 Return
@@ -120,6 +140,11 @@ F2::BloodToggle := !BloodToggle
 		Send F
 		sleep 1000
 		Stats_Runs := Stats_Runs + 1
+		if (Stats_Runs >= restartAfterRuns) {
+			sleep 500
+			Run %A_ScriptFullPath% %Stats_Runs%
+			Exit
+		}
 	Return
 ; ===============================
 ; End Define HotKeys
@@ -199,6 +224,7 @@ CreateConfig() {
 	IniWrite, %FridgeIconColour%, %ConfigPath%, settings, FridgeIconColour
 
 	; predefined settings
+	IniWrite, %restartAfterRuns%, %ConfigPath%, settings, restartAfterRuns
 	IniWrite, 50, %ConfigPath%, settings, lowestDesiredHP
 	IniWrite, 500, %ConfigPath%, settings, TekPodHoldDownTimeout
 	IniWrite, 500, %ConfigPath%, settings, TekPodMoveYDist
@@ -213,6 +239,7 @@ CreateConfig() {
 }
 
 LoadConfig() {
+	IniRead, _restartAfterRuns, %ConfigPath%, settings, restartAfterRuns, 0
 	IniRead, _EngramSlotCoordsX, %ConfigPath%, settings, EngramSlotCoordsX, 0
 	IniRead, _EngramSlotCoordsY, %ConfigPath%, settings, EngramSlotCoordsY, 0
 	IniRead, _SearchBoxCoordsX, %ConfigPath%, settings, SearchBoxCoordsX, 0
@@ -236,6 +263,7 @@ LoadConfig() {
 	TekPodMoveYDist := _TekPodMoveYDist
 	ExtraRestSeconds := _ExtraRestSeconds
 
+	restartAfterRuns := _restartAfterRuns
 	EngramSlotCoordsX := _EngramSlotCoordsX
 	EngramSlotCoordsY := _EngramSlotCoordsY
 	SearchBoxCoordsX := _SearchBoxCoordsX
