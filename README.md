@@ -1,3 +1,6 @@
+Note: since the release of Gen2, you can use a healing pistol thus this isn't the recommended method anymore.
+
+
 # BloodBot
 Ark: Blood bot using tek pod and fridge
 
